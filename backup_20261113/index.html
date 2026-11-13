@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXUM TRADE SNIPER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgLight: '#eef2f6',
+                        cardBg: 'rgba(255, 255, 255, 0.88)',
+                        borderSubtle: '#cbd5e1',
+                        brandDark: '#030712',
+                        accentBlue: '#2563eb',
+                        neonGreen: '#059669',
+                        neonRed: '#dc2626',
+                        neonPurple: '#7c3aed'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #eef2f6; color: #030712; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+        
+        .glowing-orb-1 {
+            position: fixed; top: 10%; left: 10%; width: 35vw; height: 35vw;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.45) 0%, rgba(37, 99, 235, 0.15) 50%, transparent 80%);
+            filter: blur(50px); border-radius: 50%; z-index: -1;
+            animation: moveOrb1 10s infinite alternate ease-in-out;
+        }
+        .glowing-orb-2 {
+            position: fixed; bottom: 15%; right: 10%; width: 40vw; height: 40vw;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, rgba(124, 58, 237, 0.15) 50%, transparent 80%);
+            filter: blur(60px); border-radius: 50%; z-index: -1;
+            animation: moveOrb2 12s infinite alternate ease-in-out;
+        }
+        .glowing-orb-3 {
+            position: fixed; top: 40%; right: 30%; width: 30vw; height: 30vw;
+            background: radial-gradient(circle, rgba(5, 150, 105, 0.4) 0%, rgba(5, 150, 105, 0.1) 50%, transparent 80%);
+            filter: blur(55px); border-radius: 50%; z-index: -1;
+            animation: moveOrb3 9s infinite alternate ease-in-out;
+        }
+
+        @keyframes moveOrb1 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(150px, 120px) scale(1.3); }
+        }
+        @keyframes moveOrb2 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(-140px, -100px) scale(1.25); }
+        }
+        @keyframes moveOrb3 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, -130px) scale(1.35); }
+        }
+
+        @keyframes radar-pulse {
+            0% { transform: scale(0.9); opacity: 0.9; }
+            50% { transform: scale(1.3); opacity: 0.2; }
+            100% { transform: scale(0.9); opacity: 0.9; }
+        }
+        .animate-radar { animation: radar-pulse 1.5s infinite ease-in-out; }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .ai-scanning {
+            background: linear-gradient(90deg, #ffffff 0%, #e0e7ff 50%, #ffffff 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between py-8 px-4 relative">
+
+    <div class="glowing-orb-1"></div>
+    <div class="glowing-orb-2"></div>
+    <div class="glowing-orb-3"></div>
+
+    <div class="max-w-4xl mx-auto w-full flex justify-between items-center mb-8 pb-4 border-b border-borderSubtle bg-cardBg/60 backdrop-blur-md px-5 rounded-2xl shadow-sm">
+        <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-brandDark flex items-center justify-center text-white font-black text-sm shadow-lg">AX</div>
+            <span class="font-extrabold text-lg tracking-tight text-brandDark">AXUM TRADE</span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span id="navStatusBadge" class="text-xs font-bold px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-700 border border-blue-300 flex items-center space-x-1.5 shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span>Subscription Wall</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- ================= PAYMENT WALL ================= -->
+    <div id="paywallView" class="max-w-xl mx-auto w-full space-y-8 my-auto">
+        <div class="text-center space-y-3">
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight text-brandDark drop-shadow-sm">
+                Institutional Signals, <br><span class="text-accentBlue">Automated for You.</span>
+            </h1>
+            <p class="text-gray-700 text-sm max-w-md mx-auto font-medium">
+                Access real-time AI probability models, 1:2 RR setups, and automated Telegram dispatching.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div onclick="selectPlan('VIP', 699)" id="cardVIP" class="cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-accentBlue rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-[10px] uppercase font-black tracking-wider text-accentBlue bg-blue-100 px-2.5 py-1 rounded-md">Core Tier</span>
+                    <span class="text-2xl font-black text-brandDark">699 <span class="text-xs font-bold text-gray-500">ETB/mo</span></span>
+                </div>
+                <h3 class="font-extrabold text-lg text-brandDark mb-1">VIP Monthly Pass</h3>
+                <p class="text-xs text-gray-600 mb-4 font-medium">5 Core Markets: GBP/USD, XAU/USD, EUR/USD, NASDAQ, AUD/USD.</p>
+                <div class="text-xs font-bold text-gray-800 space-y-2">
+                    <p class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Short-term Momentum</span>
+                    </p>
+                    <p class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>1:2 Risk-Reward Ratio</span>
+                    </p>
+                </div>
+            </div>
+
+            <div onclick="selectPlan('PRO', 1499)" id="cardPRO" class="cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-borderSubtle rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-[10px] uppercase font-black tracking-wider text-neonPurple bg-purple-100 px-2.5 py-1 rounded-md">Elite Tier</span>
+                    <span class="text-2xl font-black text-brandDark">1,499 <span class="text-xs font-bold text-gray-500">ETB/mo</span></span>
+                </div>
+                <h3 class="font-extrabold text-lg text-brandDark mb-1">Premium Pro Pass</h3>
+                <p class="text-xs text-gray-600 mb-4 font-medium">20+ Markets with multi-timeframe macro confirmation & high accuracy.</p>
+                <div class="text-xs font-bold text-gray-800 space-y-2">
+                    <p class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-neonPurple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Max Accuracy Models</span>
+                    </p>
+                    <p class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-neonPurple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Long & Short Snipes</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-cardBg backdrop-blur-xl border border-borderSubtle rounded-2xl p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center text-xs text-gray-700 font-semibold border-b border-borderSubtle pb-3">
+                <span>Selected Plan: <strong id="lblPlan" class="text-brandDark">VIP Monthly Pass</strong></span>
+                <span>Due: <strong id="lblPrice" class="text-accentBlue font-black text-sm">699 ETB</strong></span>
+            </div>
+
+            <!-- TELEBIRR PAYMENT INSTRUCTIONS & COPY BUTTON -->
+            <div class="bg-blue-50/90 border-2 border-blue-200 rounded-xl p-4 space-y-2">
+                <span class="block text-[11px] font-black text-blue-900 uppercase tracking-wider">💳 Official Telebirr Payment Account</span>
+                <p class="text-xs text-gray-700 font-medium">Send the exact plan amount to the Telebirr number below, then enter your Transaction ID (TRX):</p>
+                <div class="flex items-center justify-between bg-white border border-blue-300 rounded-xl px-4 py-2.5 shadow-inner">
+                    <span id="telebirrNum" class="font-mono font-black text-brandDark text-base tracking-wider">0964235209</span>
+                    <button onclick="copyTelebirrNumber()" class="bg-accentBlue hover:bg-blue-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg transition shadow">
+                        Copy Number
+                    </button>
+                </div>
+                <p id="copyFeedback" class="text-[10px] text-emerald-700 font-bold hidden">✓ Telebirr number copied to clipboard!</p>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-black text-gray-700 mb-1">TELEGRAM USERNAME</label>
+                    <input type="text" id="teleUsername" placeholder="e.g., @miki_trader" 
+                        class="w-full bg-white border-2 border-gray-300 rounded-xl px-4 py-3 text-sm text-brandDark font-medium focus:outline-none focus:border-accentBlue shadow-inner">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-black text-gray-700 mb-1">TELEBIRR TRANSACTION ID (TRX)</label>
+                    <input type="text" id="trxInput" placeholder="e.g., TRX98452103" 
+                        class="w-full bg-white border-2 border-gray-300 rounded-xl px-4 py-3 text-sm text-brandDark font-medium focus:outline-none focus:border-accentBlue shadow-inner">
+                </div>
+            </div>
+            <button onclick="verifyPayment()" 
+                class="w-full bg-brandDark hover:bg-blue-600 text-white font-extrabold py-4 rounded-xl shadow-lg transition duration-200 text-xs tracking-wider uppercase">
+                Verify Telebirr & Unlock Terminal
+            </button>
+            <div id="payStatus" class="hidden text-center p-3 rounded-xl text-xs border font-bold"></div>
+        </div>
+    </div>
+
+
+    <!-- ================= TRADING DASHBOARD ================= -->
+    <div id="dashboardView" class="hidden max-w-4xl mx-auto w-full space-y-6">
+        
+        <div class="bg-cardBg backdrop-blur-xl border border-borderSubtle rounded-2xl p-5 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-4">
+                <div>
+                    <span class="text-[10px] text-gray-500 font-black uppercase tracking-wider block">SELECTED MARKET</span>
+                    <select id="marketSelect" onchange="switchMarket()" class="bg-white border-2 border-gray-300 font-black text-lg text-brandDark px-3 py-1.5 rounded-xl focus:outline-none mt-0.5 shadow-sm">
+                        <option value="GBP/USD">GBP/USD (Cable)</option>
+                        <option value="XAU/USD">XAU/USD (Gold)</option>
+                        <option value="EUR/USD">EUR/USD</option>
+                        <option value="NASDAQ">NASDAQ 100</option>
+                        <option value="AUD/USD">AUD/USD</option>
+                    </select>
+                </div>
+                <div class="border-l border-borderSubtle pl-4">
+                    <span class="text-[10px] text-gray-500 font-black uppercase tracking-wider block">REAL-TIME PRICE</span>
+                    <span id="livePrice" class="text-lg font-mono font-black text-brandDark">1.32598</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 bg-blue-100/90 border-2 border-blue-300 px-4 py-2.5 rounded-xl shadow-sm">
+                <div class="relative w-3.5 h-3.5 flex items-center justify-center">
+                    <div class="absolute w-6 h-6 rounded-full bg-accentBlue/40 animate-radar"></div>
+                    <div class="w-3 h-3 rounded-full bg-accentBlue"></div>
+                </div>
+                <div class="text-xs">
+                    <span id="aiScanText" class="font-extrabold text-accentBlue block">AI Neural Scan Active...</span>
+                    <span class="text-[10px] text-gray-600 font-semibold">Scanning liquidity pools & order blocks</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="signalCard" class="bg-cardBg backdrop-blur-xl border-4 border-neonGreen rounded-2xl p-6 shadow-2xl space-y-5 relative overflow-hidden transition-all duration-300">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-xs text-gray-500 font-black uppercase tracking-wider">AXUM PROBABILITY SNIPER</span>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <span id="signalActionBadge" class="px-4 py-1.5 rounded-xl bg-neonGreen text-white font-black text-base tracking-widest shadow-md">BUY</span>
+                        <span id="signalConf" class="text-xs text-emerald-800 font-mono font-black bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-300 shadow-sm">87% CONFIDENCE</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-gray-500 uppercase font-black block">RISK / REWARD</span>
+                    <span class="text-sm font-black text-brandDark font-mono">1 : 2 (20p / 40p)</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/90 p-4 rounded-xl border border-borderSubtle shadow-inner">
+                <div>
+                    <span class="text-gray-500 text-[10px] font-black uppercase block">ENTRY PRICE</span>
+                    <span id="sigEntry" class="font-mono font-extrabold text-brandDark text-base">1.32520</span>
+                </div>
+                <div>
+                    <span class="text-gray-500 text-[10px] font-black uppercase block">TAKE PROFIT (TP)</span>
+                    <span id="sigTP" class="font-mono font-extrabold text-neonGreen text-base">1.32780</span>
+                </div>
+                <div>
+                    <span class="text-gray-500 text-[10px] font-black uppercase block">STOP LOSS (SL)</span>
+                    <span id="sigSL" class="font-mono font-extrabold text-neonRed text-base">1.32390</span>
+                </div>
+            </div>
+
+            <div class="bg-amber-100/90 border-2 border-amber-300 rounded-xl p-3 text-xs text-amber-900 font-bold flex items-center space-x-2.5 shadow-sm">
+                <svg class="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span>Execution Note: Recommended lot size 0.10. Ensure V-Prop risk parameters are respected.</span>
+            </div>
+        </div>
+
+        <div class="bg-cardBg backdrop-blur-xl border border-borderSubtle rounded-2xl p-6 shadow-xl space-y-4">
+            <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center space-x-2">
+                <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <span>AI Market Structure & Indicator Matrix (Live Processing)</span>
+            </h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-bold">
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">Structure</span>
+                    <span id="anaStructure" class="font-black text-neonGreen">BULLISH</span>
+                </div>
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">Liquidity</span>
+                    <span id="anaLiquidity" class="font-black text-accentBlue">SWEPT</span>
+                </div>
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">Momentum</span>
+                    <span id="anaMomentum" class="font-black text-neonGreen">STRONG</span>
+                </div>
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">Macro Trend</span>
+                    <span id="anaTrend" class="font-black text-neonGreen">BULLISH</span>
+                </div>
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">Support/Res</span>
+                    <span class="font-black text-brandDark">CONFIRMED</span>
+                </div>
+                <div class="ai-scanning p-3.5 rounded-xl border-2 border-gray-300 flex justify-between items-center shadow-sm">
+                    <span class="text-gray-600">RSI (14)</span>
+                    <span id="anaRSI" class="font-black text-brandDark">62.4</span>
+                </div>
+            </div>
+
+            <div class="bg-blue-100/90 border-2 border-blue-300 p-4 rounded-xl shadow-sm">
+                <div class="flex items-center space-x-2 mb-1">
+                    <svg class="w-4 h-4 text-accentBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-xs font-black text-accentBlue">AI Reasoning Summary:</p>
+                </div>
+                <p id="aiExplanation" class="text-xs text-gray-800 font-semibold leading-relaxed pl-6">
+                    "Price swept the previous liquidity level and reclaimed bullish structure on GBP/USD. Momentum remains positive while holding above key support."
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="max-w-4xl mx-auto w-full text-center text-gray-500 font-semibold text-xs mt-12 pt-4 border-t border-borderSubtle relative z-10 bg-cardBg/60 backdrop-blur-md py-3 rounded-2xl">
+        Axum Trade Intelligence Engine © 2026 • Professional Prop Firm Automation
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let selectedTier = 'VIP';
+        let planPrice = 699;
+
+        function selectPlan(tier, price) {
+            selectedTier = tier;
+            planPrice = price;
+            document.getElementById('lblPlan').innerText = tier === 'VIP' ? 'VIP Monthly Pass' : 'Premium Pro Pass';
+            document.getElementById('lblPrice').innerText = price + ' ETB';
+
+            if(tier === 'VIP') {
+                document.getElementById('cardVIP').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-accentBlue rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
+                document.getElementById('cardPRO').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-borderSubtle rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
+            } else {
+                document.getElementById('cardPRO').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-accentBlue rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
+                document.getElementById('cardVIP').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-borderSubtle rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
+            }
+        }
+
+        function copyTelebirrNumber() {
+            const num = document.getElementById('telebirrNum').innerText;
+            navigator.clipboard.writeText(num).then(() => {
+                const feedback = document.getElementById('copyFeedback');
+                feedback.classList.remove('hidden');
+                setTimeout(() => feedback.classList.add('hidden'), 3000);
+            });
+        }
+
+        async function verifyPayment() {
+            const username = document.getElementById('teleUsername').value.trim();
+            const trx = document.getElementById('trxInput').value.trim();
+            const statusBox = document.getElementById('payStatus');
+
+            if(!username || !trx) {
+                statusBox.className = "text-center p-3 rounded-xl text-xs bg-red-100 text-red-700 border border-red-300 block font-bold";
+                statusBox.innerText = "Please enter your Telegram username and Telebirr Transaction ID!";
+                return;
+            }
+
+            statusBox.className = "text-center p-3 rounded-xl text-xs bg-blue-100 text-blue-800 border border-blue-300 block font-bold";
+            statusBox.innerText = "Verifying Telebirr transaction with gateway...";
+
+            const userId = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : 7480888438;
+
+            try {
+                let res = await fetch('/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegram_id: userId, telegram_username: username, transaction_id: trx, plan: selectedTier })
+                });
+                let data = await res.json();
+
+                if(data.success) {
+                    statusBox.className = "text-center p-3 rounded-xl text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 block font-bold";
+                    statusBox.innerText = "🎉 Verified! Initializing Axum Trading Terminal...";
+                    setTimeout(() => {
+                        document.getElementById('paywallView').classList.add('hidden');
+                        document.getElementById('dashboardView').classList.remove('hidden');
+                        document.getElementById('navStatusBadge').innerHTML = `
+                            <svg class="w-3.5 h-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <span>VIP Terminal Active</span>
+                        `;
+                        document.getElementById('navStatusBadge').className = "text-xs font-bold px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1.5 shadow-sm";
+                    }, 1500);
+                } else {
+                    statusBox.className = "text-center p-3 rounded-xl text-xs bg-red-100 text-red-700 border border-red-300 block font-bold";
+                    statusBox.innerText = data.message;
+                }
+            } catch(e) {
+                statusBox.className = "text-center p-3 rounded-xl text-xs bg-red-100 text-red-700 border border-red-300 block font-bold";
+                statusBox.innerText = "Server connection error.";
+            }
+        }
+
+        const marketData = {
+            "GBP/USD": { price: "1.32598", action: "BUY", conf: "87%", entry: "1.32520", tp: "1.32780", sl: "1.32390", structure: "BULLISH", liq: "SWEPT", mom: "STRONG", trend: "BULLISH", rsi: "62.4", exp: "Price swept previous liquidity level and reclaimed bullish structure on GBP/USD. Momentum remains positive while holding above key support." },
+            "XAU/USD": { price: "2734.50", action: "SELL", conf: "92%", entry: "2738.00", tp: "2722.00", sl: "2746.00", structure: "BEARISH", liq: "SWEPT", mom: "STRONG", trend: "BEARISH", rsi: "38.1", exp: "Gold rejected major resistance at 2745 with aggressive institutional short displacement. Bearish order block confirmed." },
+            "EUR/USD": { price: "1.05420", action: "WAIT", conf: "45%", entry: "---", tp: "---", sl: "---", structure: "NEUTRAL", liq: "RANGING", mom: "WEAK", trend: "SIDEWAYS", rsi: "50.2", exp: "No A+ setup currently. Price is consolidating inside an equilibrium range. Waiting for liquidity sweep." },
+            "NASDAQ":  { price: "21150.4", action: "BUY", conf: "89%", entry: "21120.0", tp: "21320.0", sl: "21020.0", structure: "BULLISH", liq: "SWEPT", mom: "STRONG", trend: "BULLISH", rsi: "68.5", exp: "NASDAQ bounced off 1H Fair Value Gap with high buying volume. Institutional order flow is strongly upward." },
+            "AUD/USD": { price: "0.64820", action: "WAIT", conf: "52%", entry: "---", tp: "---", sl: "---", structure: "NEUTRAL", liq: "NONE", mom: "NEUTRAL", trend: "SIDEWAYS", rsi: "49.8", exp: "Awaiting New York session open for clear displacement before executing sniper entry." }
+        };
+
+        const scanningPhrases = [
+            "Analyzing institutional order blocks...",
+            "Checking 1H macro trend bias...",
+            "Scanning 5M liquidity sweeps...",
+            "Calculating 1:2 risk-reward probability..."
+        ];
+        let scanIdx = 0;
+        setInterval(() => {
+            scanIdx = (scanIdx + 1) % scanningPhrases.length;
+            const el = document.getElementById('aiScanText');
+            if(el) el.innerText = scanningPhrases[scanIdx];
+        }, 3000);
+
+        async function switchMarket() {
+            const pair = document.getElementById('marketSelect').value;
+            const data = marketData[pair];
+            
+            document.getElementById('livePrice').innerText = data.price;
+            
+            const userId = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : 7480888438;
+            try {
+                await fetch('/update-market', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegram_id: userId, market: pair })
+                });
+            } catch(e) { console.error("Failed to sync market with backend"); }
+
+            const badge = document.getElementById('signalActionBadge');
+            const card = document.getElementById('signalCard');
+
+            badge.innerText = data.action;
+            if(data.action === 'BUY') {
+                badge.className = "px-4 py-1.5 rounded-xl bg-neonGreen text-white font-black text-base tracking-widest shadow-md";
+                card.className = "bg-cardBg backdrop-blur-xl border-4 border-neonGreen rounded-2xl p-6 shadow-2xl space-y-5 relative overflow-hidden transition-all duration-300";
+            } else if(data.action === 'SELL') {
+                badge.className = "px-4 py-1.5 rounded-xl bg-neonRed text-white font-black text-base tracking-widest shadow-md";
+                card.className = "bg-cardBg backdrop-blur-xl border-4 border-neonRed rounded-2xl p-6 shadow-lg space-y-5 relative overflow-hidden transition-all duration-300";
+            } else {
+                badge.className = "px-4 py-1.5 rounded-xl bg-amber-500 text-white font-black text-base tracking-widest shadow-md";
+                card.className = "bg-cardBg backdrop-blur-xl border-4 border-amber-500 rounded-2xl p-6 shadow-lg space-y-5 relative overflow-hidden transition-all duration-300";
+            }
+
+            document.getElementById('signalConf').innerText = data.conf + " CONFIDENCE";
+            document.getElementById('sigEntry').innerText = data.entry;
+            document.getElementById('sigTP').innerText = data.tp;
+            document.getElementById('sigSL').innerText = data.sl;
+
+            document.getElementById('anaStructure').innerText = data.structure;
+            document.getElementById('anaLiquidity').innerText = data.liq;
+            document.getElementById('anaMomentum').innerText = data.mom;
+            document.getElementById('anaTrend').innerText = data.trend;
+            document.getElementById('anaRSI').innerText = data.rsi;
+            document.getElementById('aiExplanation').innerText = `"${data.exp}"`;
+        }
+    </script>
+</body>
+</html>
