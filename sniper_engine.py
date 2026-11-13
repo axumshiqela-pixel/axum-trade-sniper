@@ -7,12 +7,20 @@ import MetaTrader5 as mt5
 
 RISK_REWARD_RATIO = 2.0
 
-# Updated with your new BotFather API Token
 TELEGRAM_BOT_TOKEN = "9106860212:AAF2eR2ML1It8pIhYnU4jtcki86jR4-_k8U"
 TELEGRAM_CHAT_ID = "7480888438"
 TARGET_TELEGRAM_ID = 7480888438
 
 JOURNAL_FILE = "trade_journal.csv"
+
+# Tier Market Definitions
+CORE_VIP_MARKETS = ["GBPUSD.e", "XAUUSD", "EURUSD.e", "NASDAQ", "AUDUSD.e"]
+PRO_EXPANDED_MARKETS = [
+    "GBPUSD.e", "XAUUSD", "EURUSD.e", "NASDAQ", "AUDUSD.e",
+    "USDJPY.e", "US30", "GBPJPY.e", "EURJPY.e", "USDCAD.e",
+    "NZDUSD.e", "USDCHF.e", "GER40", "UK100", "BRENT",
+    "BTCUSD", "ETHUSD", "ADAUSD", "SOLUSD", "XRPUSD"
+]
 
 def init_journal():
     if not os.path.exists(JOURNAL_FILE):
@@ -26,26 +34,35 @@ def log_trade_to_csv(symbol, action, entry, sl, tp):
         writer = csv.writer(f)
         writer.writerow([timestamp, symbol, action, f"{entry:.5f}", f"{sl:.5f}", f"{tp:.5f}", "EXECUTED"])
 
-def send_telegram_alert(message):
+def send_telegram_alert(message, chat_id=TELEGRAM_CHAT_ID):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     try:
-        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}, timeout=5)
+        requests.post(url, json={"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}, timeout=5)
     except Exception as e:
         print(f"[TELEGRAM ERROR] {e}")
 
-def get_user_selected_market() -> str:
+def get_user_session_info():
     try:
-        res = requests.get(f"http://127.0.0.1:8000/get-user-market/{TARGET_TELEGRAM_ID}", timeout=3)
+        res = requests.get(f"http://127.0.0.1:8000/check-access/{TARGET_TELEGRAM_ID}", timeout=3)
         data = res.json()
-        market_ui = data.get("market", "GBP/USD")
-        if market_ui == "GBP/USD": return "GBPUSD.e"
-        if market_ui == "XAU/USD": return "XAUUSD"
-        if market_ui == "EUR/USD": return "EURUSD.e"
-        if market_ui == "NASDAQ": return "NASDAQ"
-        if market_ui == "AUD/USD": return "AUDUSD.e"
-        return "GBPUSD.e"
+        tier = data.get("tier", "VIP")
+        
+        res_market = requests.get(f"http://127.0.0.1:8000/get-user-market/{TARGET_TELEGRAM_ID}", timeout=3)
+        market_data = res_market.json()
+        market_ui = market_data.get("market", "GBP/USD")
+        
+        # Map UI name to MT5 symbol
+        mapping = {
+            "GBP/USD": "GBPUSD.e",
+            "XAU/USD": "XAUUSD",
+            "EUR/USD": "EURUSD.e",
+            "NASDAQ": "NASDAQ",
+            "AUD/USD": "AUDUSD.e"
+        }
+        symbol = mapping.get(market_ui, "GBPUSD.e")
+        return tier, symbol
     except:
-        return "GBPUSD.e"
+        return "VIP", "GBPUSD.e"
 
 def initialize_mt5():
     if not mt5.initialize():
@@ -65,7 +82,6 @@ def analyze_market_live(symbol):
     h1_closes = [bar['close'] for bar in rates_1h]
     macro_bullish = h1_closes[-1] > h1_closes[-4]
 
-    c_prev = rates_5m[-2]
     c_curr = rates_5m[-1]
     
     is_bullish = macro_bullish and (c_curr['close'] > c_curr['open'])
@@ -73,7 +89,7 @@ def analyze_market_live(symbol):
 
     action = "BUY" if is_bullish else ("SELL" if is_bearish else "WAIT")
     
-    sl_distance = 0.0020 if "USD" in symbol and "XAU" not in symbol else (2.0 if "XAU" in symbol else 50.0)
+    sl_distance = 0.0020 if "USD" in symbol and "XAU" not in symbol and "US30" not in symbol and "NASDAQ" not in symbol else (2.0 if "XAU" in symbol else 50.0)
     tp_distance = sl_distance * RISK_REWARD_RATIO
 
     if action == "BUY":
@@ -100,41 +116,47 @@ def analyze_market_live(symbol):
 
 def main_loop():
     print("========================================")
-    print(" AXUM SNIPER: NEW BOT TOKEN SYNCED      ")
+    print(" AXUM SNIPER: LIVE TIER & API SYNCED    ")
     print("========================================")
     
     init_journal()
     if not initialize_mt5():
         return
     
-    send_telegram_alert("🤖 *Axum Trade Sniper Initialized with New Bot!* Scanning your selected market in real-time.")
+    send_telegram_alert("🤖 *Axum Trade Sniper Engine Activated!* Monitoring institutional liquidity and market structure in real-time.")
 
     last_signal_action = None
 
     while True:
-        active_symbol = get_user_selected_market()
+        tier, active_symbol = get_user_session_info()
+        
+        # Enforce tier restrictions
+        if tier == "VIP" and active_symbol not in CORE_VIP_MARKETS:
+            active_symbol = "GBPUSD.e" # Default fallback for VIP if out of bounds
+            
         analysis = analyze_market_live(active_symbol)
         
         if analysis:
             timestamp_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"[{timestamp_str}] Market: {active_symbol} | Action: {analysis['action']}")
+            print(f"[{timestamp_str}] Tier: {tier} | Market: {active_symbol} | Action: {analysis['action']}")
             
             if analysis["action"] in ["BUY", "SELL"] and analysis["action"] != last_signal_action:
                 last_signal_action = analysis["action"]
                 log_trade_to_csv(active_symbol, analysis["action"], float(analysis["entry"]), float(analysis["sl"]), float(analysis["tp"]))
                 
                 alert_msg = (
-                    f"🔥 *HIGH-PROBABILITY {analysis['action']} SIGNAL* 🔥\n\n"
+                    f"🔥 *AXUM INSTITUTIONAL SNIPER SIGNAL* 🔥\n\n"
+                    f"🏷️ Tier Pass: *{tier} Tier*\n"
                     f"📅 Date/Time: `{timestamp_str}`\n"
-                    f"Symbol: `{active_symbol}`\n"
-                    f"Action: *{analysis['action']}*\n"
-                    f"Entry Price: `{analysis['entry']}`\n"
-                    f"Stop Loss: `{analysis['sl']}`\n"
-                    f"Take Profit: `{analysis['tp']}` (1:2 RR)\n\n"
-                    f"⚠️ *Risk Warning:* Manage your lot size and risk according to your personal account balance or prop firm rules.\n\n"
-                    f"⚡ _Execute immediately on V Prop!_"
+                    f"📊 Asset: `{active_symbol}`\n"
+                    f"⚡ Signal Action: *{analysis['action']}*\n\n"
+                    f"📌 *Exact Price Levels:*\n"
+                    f"• Entry Price: `{analysis['entry']}`\n"
+                    f"• Stop Loss (SL): `{analysis['sl']}`\n"
+                    f"• Take Profit (TP): `{analysis['tp']}` (1:2 RR)\n\n"
+                    f"⚠️ _Execute with proper risk management according to V-Prop rules._"
                 )
-                send_telegram_alert(alert_msg)
+                send_telegram_alert(alert_msg, TARGET_TELEGRAM_ID)
                 
         time.sleep(20)
 
