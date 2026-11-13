@@ -3,3 +3,5 @@ uvicorn
 requests
 pydantic
 psycopg2-binary
+python-telegram-bot
+tx-verify

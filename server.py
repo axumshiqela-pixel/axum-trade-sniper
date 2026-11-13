@@ -3,6 +3,7 @@ import os
 import requests
 import asyncio
 import logging
+import threading
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -29,7 +30,6 @@ REQUIRED_AMOUNT = 200.0
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # --- TELEGRAM BOT LOGIC ---
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db_user = db.get_user(user.id)
@@ -53,17 +53,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_trx(update: Update, context: ContextTypes.DEFAULT_TYPE):
     trx = update.message.text.strip()
     user = update.effective_user
-    
     if len(trx) < 6:
         await update.message.reply_text("⚠️ Invalid TRX format.")
         return
-
     if db.is_receipt_used(trx):
         await update.message.reply_text("❌ *Security Alert*\n\nThis Transaction ID has already been used.")
         return
 
     msg = await update.message.reply_text("⏳ Verifying your Telebirr transaction...")
-
     is_valid = False
     reason = "Verification failed."
 
@@ -82,14 +79,13 @@ async def handle_trx(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reason = f"Verification error: {str(e)}"
     else:
         await asyncio.sleep(1)
-        is_valid = True # Mock mode
+        is_valid = True # Mock mode for testing
 
     if is_valid:
         db.save_used_receipt(trx, user.id)
         expiry_str = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
         username = f"@{user.username}" if user.username else user.first_name
         db.add_user(user.id, username, expiry_str, "VIP")
-        
         await msg.edit_text(
             f"🎉 *Payment Verified!*\n\nYour VIP pass is active until *{expiry_str}*.",
             parse_mode="Markdown",
@@ -99,19 +95,17 @@ async def handle_trx(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(f"❌ *Verification Failed*\n\n{reason}")
 
 # --- FASTAPI SERVER LOGIC ---
-
 @app.on_event("startup")
 async def startup_event():
     db.init_db()
-    # Start the Telegram bot as a background task so it runs alongside the web server
-    bot_app = Application.builder().token(BOT_TOKEN).build()
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_trx))
+    def run_bot():
+        bot_app = Application.builder().token(BOT_TOKEN).build()
+        bot_app.add_handler(CommandHandler("start", start))
+        bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_trx))
+        bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
     
-    await bot_app.initialize()
-    await bot_app.start()
-    asyncio.create_task(bot_app.updater.start_polling())
-    print("🤖 Telegram Bot is running alongside the Web Server!")
+    threading.Thread(target=run_bot, daemon=True).start()
+    print("🤖 Telegram Bot is running in background thread!")
 
 @app.get("/check-access/{telegram_id}")
 def check_access(telegram_id: int):
