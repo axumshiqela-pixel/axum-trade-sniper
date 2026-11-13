@@ -152,6 +152,20 @@
                 <span>Selected Plan: <strong id="lblPlan" class="text-brandDark">VIP Monthly Pass</strong></span>
                 <span>Due: <strong id="lblPrice" class="text-accentBlue font-black text-sm">699 ETB</strong></span>
             </div>
+
+            <!-- TELEBIRR PAYMENT INSTRUCTIONS & COPY BUTTON -->
+            <div class="bg-blue-50/90 border-2 border-blue-200 rounded-xl p-4 space-y-2">
+                <span class="block text-[11px] font-black text-blue-900 uppercase tracking-wider">💳 Official Telebirr Payment Account</span>
+                <p class="text-xs text-gray-700 font-medium">Send the exact plan amount to the Telebirr number below, then enter your Transaction ID (TRX):</p>
+                <div class="flex items-center justify-between bg-white border border-blue-300 rounded-xl px-4 py-2.5 shadow-inner">
+                    <span id="telebirrNum" class="font-mono font-black text-brandDark text-base tracking-wider">0964235209</span>
+                    <button onclick="copyTelebirrNumber()" class="bg-accentBlue hover:bg-blue-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg transition shadow">
+                        Copy Number
+                    </button>
+                </div>
+                <p id="copyFeedback" class="text-[10px] text-emerald-700 font-bold hidden">✓ Telebirr number copied to clipboard!</p>
+            </div>
+
             <div class="space-y-3">
                 <div>
                     <label class="block text-[11px] font-black text-gray-700 mb-1">TELEGRAM USERNAME</label>
@@ -312,6 +326,15 @@
                 document.getElementById('cardPRO').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-accentBlue rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
                 document.getElementById('cardVIP').className = "cursor-pointer bg-cardBg backdrop-blur-xl border-2 border-borderSubtle rounded-2xl p-6 shadow-xl transition hover:scale-[1.02] relative";
             }
+        }
+
+        function copyTelebirrNumber() {
+            const num = document.getElementById('telebirrNum').innerText;
+            navigator.clipboard.writeText(num).then(() => {
+                const feedback = document.getElementById('copyFeedback');
+                feedback.classList.remove('hidden');
+                setTimeout(() => feedback.classList.add('hidden'), 3000);
+            });
         }
 
         async function verifyPayment() {
